@@ -1,5 +1,50 @@
-<canvas id="nbody-canvas" width=800 height=600 style="border: 1px solid">
-</canvas>
+<div id="canvas-container">
+	<canvas id="nbody-canvas" width=800 height=600 style="border: 1px solid;">		
+	</canvas>
+</div>
+
+<div>
+	<span>Gravitational Constant: <input type="number" data-bind="value: bigG"/></span>
+	<span>Timestep: <input type="number" data-bind="value: timestep"/></span>
+	<span>Show Velocity: <input type="checkbox" data-bind="checked: showVelocity"/></span>
+	<span>Show Acceleration: <input type="checkbox" data-bind="checked: showAcceleration"/></span>
+<!-- 	<span data-bind="text: zoomLevel"></span> -->
+</div>
+
+<table>
+	<thead>
+		<tr>
+			<th>x</th>
+			<th>y</th>
+			<th>vx</th>
+			<th>vy</th>
+			<th>r</th>
+			<th>mass</th>
+			<th>color</th>
+		</tr>
+	</thead>
+	<tbody data-bind="foreach: initialConditions">
+		<tr>
+			<td><input type="number" data-bind="value: x"/></td>
+			<td><input type="number" data-bind="value: y"/></td>
+			<td><input type="number" data-bind="value: vx"/></td>
+			<td><input type="number" data-bind="value: vy"/></td>
+			<td><input type="number" data-bind="value: r"/></td>
+			<td><input type="number" data-bind="value: mass"/></td>
+			<td><input type="text" data-bind="value: color"/></td>
+			<td><a href="#" data-bind="click: function() { removePlanet($index); }">Remove</a></td>
+		</tr>
+	</tbody>
+</table>
+
+<button data-bind='click: addPlanet'>+</button>
+<button data-bind="click: loadPlanets"/>Load Planets</span>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js">
+</script>
 
 <script src="nbody.js">
 </script>
