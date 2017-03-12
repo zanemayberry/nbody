@@ -10,7 +10,13 @@ var mouseX = undefined;
 var mouseY = undefined;
 var cameraX = 0;
 var cameraY = 0;
-var cameraZ = 1000;
+var cameraVX = 0;
+var cameraVY = 0;
+var cameraInputWeight = .05;
+var cameraSpeed = 7;
+var zoomLevel = 0;
+var zoomSpeed = 1 / 360;
+var zoomExponent = 2;
 var planets = [];
 var speedy = [];
 
@@ -87,7 +93,6 @@ var viewModel = {
 	showAcceleration: ko.observable(true),
 	timestep: ko.observable(.0001),
 	bigG: ko.observable(1),
-	zoomLevel: ko.observable(0),
 	stepsPerDraw: ko.observable(10000),
 	initialConditions: initialConditions,
 	loadPlanets: loadPlanets
@@ -95,14 +100,15 @@ var viewModel = {
 
 ko.applyBindings(viewModel);
 
-canvas.addEventListener('mousemove', function(evt) {
-	mouseX = evt.clientX - rect.left;
-	mouseY = evt.clientY - rect.top;
-});
+// canvas.addEventListener('mousemove', function(evt) {
+// 	mouseX = evt.clientX - rect.left;
+// 	mouseY = evt.clientY - rect.top;
+// });
 
-document.onmousewheel = function (evt) {
-	viewModel.zoomLevel(viewModel.zoomLevel() + evt.deltaY);
-};
+document.addEventListener('mousewheel', function(evt) { 
+	zoomLevel += evt.deltaY;
+}, true);
+
 
 var keys = {};
 
@@ -115,13 +121,14 @@ document.onkeyup = function (e) {
 };
 
 var testKey = function (key) {
-	return keys[key] = true;
+	return keys[key] == true;
 };
 
 var update = function () {
 	var steps = parseInt(viewModel.stepsPerDraw());
 	var dt = parseFloat(viewModel.timestep());
 	var bigG = parseFloat(viewModel.bigG());
+	var inv_dt_steps = 1.0 / dt / steps;
 	var num_planets = planets.length;
 
 	for (var i = 0; i < num_planets; i++) {
@@ -175,14 +182,14 @@ var update = function () {
 		}
 	}
 
-	for (var j = 0; j < num_planets; j++) {
-		var offset = 5 * j;
-		var p = planets[j];
+	for (var i = 0; i < num_planets; i++) {
+		var offset = 5 * i;
+		var p = planets[i];
 		var new_vx = speedy[offset + 2];
 		var new_vy = speedy[offset + 3];
 
-		p.ax = (new_vx - p.vx) / dt / steps;
-		p.ay = (new_vy - p.vy) / dt / steps;
+		p.ax = (new_vx - p.vx) * inv_dt_steps;
+		p.ay = (new_vy - p.vy) * inv_dt_steps;
 		p.vx = new_vx;
 		p.vy = new_vy;
 		p.x = speedy[offset];
@@ -190,9 +197,9 @@ var update = function () {
 	}
 };
 
-var drawPlanet = function (planet, showVel, showAcc) {
-	var x = planet.x;
-	var y = planet.y;
+var drawPlanet = function (planet, cameraScale, showVel, showAcc) {
+	var x = cameraScale * (planet.x - cameraX - 400) + 400;
+	var y = cameraScale * (planet.y - cameraY - 300) + 300;
 	var vx = planet.vx;
 	var vy = planet.vy;
 	var ax = planet.ax;
@@ -200,36 +207,75 @@ var drawPlanet = function (planet, showVel, showAcc) {
 
 	ctx.strokeStyle = planet.color;
 	ctx.beginPath();
-	ctx.arc(x, y, planet.r, 0, TWO_PI);
+	ctx.arc(x, y, cameraScale * planet.r, 0, TWO_PI);
 	ctx.stroke();
 
 	if (showVel) {
 		ctx.beginPath();
 		ctx.moveTo(x, y);
-		ctx.lineTo(x + vx * vel_debug, y + vy * vel_debug);
+		ctx.lineTo(x + cameraScale * vx * vel_debug, y + cameraScale * vy * vel_debug);
 		ctx.stroke();
 	}
 
 	if (showAcc) {
 		ctx.beginPath();
 		ctx.moveTo(x, y);
-		ctx.lineTo(x + ax * acc_debug, y + ay * acc_debug);
+		ctx.lineTo(x + cameraScale * ax * acc_debug, y + cameraScale * ay * acc_debug);
 		ctx.stroke();
 	}
+};
+
+var moveCamera = function (cameraScale) {
+	var inputVX = 0;
+	var inputVY = 0;
+	if (testKey(87)) { // W
+		inputVY -= 1;
+	}
+	if (testKey(65)) { // A
+		inputVX -= 1;
+	}
+	if (testKey(83)) { // S
+		inputVY += 1;
+	}
+	if (testKey(68)) { // D
+		inputVX += 1;
+	}
+
+	var inputMag = Math.hypot(inputVX, inputVY);
+	if (inputMag != 0) {
+		inputVX /= inputMag;
+		inputVY /= inputMag;
+	}
+
+	cameraVX = (cameraInputWeight * inputVX + (1 - cameraInputWeight) * cameraVX);	
+	cameraVY = (cameraInputWeight * inputVY + (1 - cameraInputWeight) * cameraVY);
+
+	cameraX += cameraSpeed * cameraVX / cameraScale;
+	cameraY += cameraSpeed * cameraVY / cameraScale;	
 };
 
 var draw = function () {
 	var showVel = viewModel.showVelocity();
 	var showAcc = viewModel.showAcceleration();
+	var cameraScale = Math.pow(zoomExponent, -zoomLevel * zoomSpeed);
+
+	moveCamera(cameraScale);
 
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	for (var i = 0; i < planets.length; i++) {
 		var thisPlanet = planets[i];
-		drawPlanet(thisPlanet, showVel, showAcc);
+		drawPlanet(thisPlanet, cameraScale, showVel, showAcc);
 	}
 };
 
 var loop = function () {
+	if (testKey(82)) { // R
+		loadPlanets();
+		cameraX = 0;
+		cameraY = 0;
+		zoomLevel = 0;
+	}
+
 	update();
 	draw();
 	window.requestAnimationFrame(loop);
