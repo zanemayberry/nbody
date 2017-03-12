@@ -170,17 +170,23 @@ var update = function () {
 
 		for (var j = 0; j < num_planets; j++) {
 			var offset = 5 * j;
-			var p = planets[j];
-			var new_vx = speedy[offset + 2];
-			var new_vy = speedy[offset + 3];
-
-			p.ax = (new_vx - p.vx) / dt;
-			p.ay = (new_vy - p.vy) / dt;
-			p.vx = new_vx;
-			p.vy = new_vy;
-			p.x += p.vx * dt;
-			p.y += p.vy * dt;
+			speedy[offset] += speedy[offset + 2] * dt;
+			speedy[offset + 1] += speedy[offset + 3] * dt;
 		}
+	}
+
+	for (var j = 0; j < num_planets; j++) {
+		var offset = 5 * j;
+		var p = planets[j];
+		var new_vx = speedy[offset + 2];
+		var new_vy = speedy[offset + 3];
+
+		p.ax = (new_vx - p.vx) / dt / steps;
+		p.ay = (new_vy - p.vy) / dt / steps;
+		p.vx = new_vx;
+		p.vy = new_vy;
+		p.x = speedy[offset];
+		p.y = speedy[offset + 1];
 	}
 };
 
