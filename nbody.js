@@ -12,6 +12,7 @@ var cameraX = 0;
 var cameraY = 0;
 var cameraZ = 1000;
 var planets = [];
+var speedy = [];
 
 var initialConditions = ko.observableArray([
 	{
@@ -45,18 +46,23 @@ var initialConditions = ko.observableArray([
 
 var loadPlanets = function () {
 	var stringified = JSON.stringify(initialConditions());
-	planets = JSON.parse(stringified);
+	var objectified = JSON.parse(stringified);
+	planets = [];
 
-	for (var i = 0; i < planets.length; i++) {
-		var thisPlanet = planets[i];
-		thisPlanet.x = parseFloat(thisPlanet.x);
-		thisPlanet.y = parseFloat(thisPlanet.y);
-		thisPlanet.vx = parseFloat(thisPlanet.vx);
-		thisPlanet.vy = parseFloat(thisPlanet.vy);
-		thisPlanet.r = parseFloat(thisPlanet.r);
-		thisPlanet.mass = parseFloat(thisPlanet.mass);
-		thisPlanet.ax = 0;
-		thisPlanet.ay = 0;
+	for (var i = 0; i < objectified.length; i++) {
+		var thisPlanet = objectified[i];
+
+		planets.push({
+			x: parseFloat(thisPlanet.x),
+			y: parseFloat(thisPlanet.y),
+			vx: parseFloat(thisPlanet.vx),
+			vy: parseFloat(thisPlanet.vy),
+			mass: parseFloat(thisPlanet.mass),
+			ax: parseFloat(0),
+			ay: parseFloat(0),
+			r: parseFloat(thisPlanet.r),
+			color: thisPlanet.color
+		});
 	}
 };
 
@@ -79,9 +85,10 @@ var removePlanet = function (index) {
 var viewModel = {
 	showVelocity: ko.observable(false),
 	showAcceleration: ko.observable(true),
-	timestep: ko.observable(1),
+	timestep: ko.observable(.0001),
 	bigG: ko.observable(1),
 	zoomLevel: ko.observable(0),
+	stepsPerDraw: ko.observable(10000),
 	initialConditions: initialConditions,
 	loadPlanets: loadPlanets
 };
@@ -111,50 +118,69 @@ var testKey = function (key) {
 	return keys[key] = true;
 };
 
+var update = function () {
+	var steps = parseInt(viewModel.stepsPerDraw());
+	var dt = parseFloat(viewModel.timestep());
+	var bigG = parseFloat(viewModel.bigG());
+	var num_planets = planets.length;
 
-var updatePlanet = function (planetIdx, bigG) {
-	var p = planets[planetIdx];
-	var p_x = p.x;
-	var p_y = p.y;
-	p.ax = 0;
-	p.ay = 0;
+	for (var i = 0; i < num_planets; i++) {
+		var p = planets[i];
+		var offset = 5 * i;
+		speedy[offset]     = p.x;
+		speedy[offset + 1] = p.y;
+		speedy[offset + 2] = p.vx;
+		speedy[offset + 3] = p.vy;
+		speedy[offset + 4] = p.mass;
+	}
 
-	for (var i = 0; i < planets.length; i++) {
-		if (i == planetIdx) {
-			continue;
+	for (var i = 0; i < steps; i++) {
+		for (var j = 0; j < num_planets; j++) {
+			var offset = 5 * j;
+
+			var p_x       = speedy[offset];
+			var p_y       = speedy[offset + 1];
+			var p_vx      = speedy[offset + 2];
+			var p_vy      = speedy[offset + 3];
+			var p_mass_dt = speedy[offset + 4] * dt;
+
+			for (var k = 0; k < j; k++) {
+				var offset_k = 5 * k;
+
+				var dx        = speedy[offset_k] - p_x;
+				var dy        = speedy[offset_k + 1] - p_y;
+				var o_mass_dt = speedy[offset_k + 4] * dt;
+
+				var r = 1.0 / Math.sqrt(dx * dx + dy * dy);
+
+				var a_r_inv = bigG * r * r * r;
+				var ax = dx * a_r_inv;
+				var ay = dy * a_r_inv;
+
+				p_vx += ax * o_mass_dt;
+				p_vy += ay * o_mass_dt;
+
+				speedy[offset_k + 2] -= ax * p_mass_dt;
+				speedy[offset_k + 3] -= ay * p_mass_dt;
+			}
+
+			speedy[offset + 2] = p_vx;
+			speedy[offset + 3] = p_vy;
 		}
 
-		var o = planets[i];
+		for (var j = 0; j < num_planets; j++) {
+			var offset = 5 * j;
+			var p = planets[j];
+			var new_vx = speedy[offset + 2];
+			var new_vy = speedy[offset + 3];
 
-		var dx = o.x - p_x;
-		var dy = o.y - p_y;
-		var r = Math.max(Math.hypot(dx, dy), 10);
-		var r3 = r * r * r;
-
-		var a_r_inv = bigG * o.mass / r3;
-		var ax = dx * a_r_inv;
-		var ay = dy * a_r_inv;
-
-		p.ax += ax;
-		p.ay += ay;
-	}
-};
-
-var update = function () {
-	var dt = viewModel.timestep();
-	var bigG = viewModel.bigG();
-
-	for (var i = 0; i < planets.length; i++) {
-		updatePlanet(i, bigG);
-	}
-
-	// ZANETODO: would be cool to preserve total energy here...
-	for (var i = 0; i < planets.length; i++) {
-		var p = planets[i];
-		p.x += p.vx * dt;
-		p.y += p.vy * dt;
-		p.vx += p.ax * dt;
-		p.vy += p.ay * dt;
+			p.ax = (new_vx - p.vx) / dt;
+			p.ay = (new_vy - p.vy) / dt;
+			p.vx = new_vx;
+			p.vy = new_vy;
+			p.x += p.vx * dt;
+			p.y += p.vy * dt;
+		}
 	}
 };
 
