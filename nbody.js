@@ -3,7 +3,7 @@ var planetsText = document.getElementById("planets-text");
 var ctx = canvas.getContext("2d");
 ctx.lineWidth = 1.2;
 var TWO_PI = 2 * Math.PI;
-var vel_debug = 10;
+var vel_debug = 40;
 var acc_debug = 1000; // ZANETODO: log scale these guys :)
 var mouseX = undefined;
 var mouseY = undefined;
@@ -364,16 +364,18 @@ var drawPlanet = function (planet, cameraScale, showVel, showAcc) {
 	ctx.stroke();
 
 	if (showVel) {
+		var factor = Math.sqrt(cameraScale * vel_debug / Math.hypot(vx, vy));
 		ctx.beginPath();
 		ctx.moveTo(x, y);
-		ctx.lineTo(x + cameraScale * vx * vel_debug, y + cameraScale * vy * vel_debug);
+		ctx.lineTo(x + factor * vx, y + factor * vy);
 		ctx.stroke();
 	}
 
 	if (showAcc) {
+		var factor = Math.sqrt(cameraScale * acc_debug / Math.hypot(ax, ay));
 		ctx.beginPath();
 		ctx.moveTo(x, y);
-		ctx.lineTo(x + cameraScale * ax * acc_debug, y + cameraScale * ay * acc_debug);
+		ctx.lineTo(x + factor * ax, y + factor * ay);
 		ctx.stroke();
 	}
 };
