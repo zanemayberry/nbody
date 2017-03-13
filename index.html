@@ -1,3 +1,18 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+</script>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js">
+</script>
+
 <!DOCTYPE html>
 <html style="overflow: hidden; height: 100%;">
 <head>
@@ -7,87 +22,126 @@
 	<div class="container">
 		<div class="row">
 			<div class="col-md-9">
-				<canvas id="nbody-canvas" width=800 height=600 style="border: 1px solid;" align="center">		
+				<canvas id="nbody-canvas" width=800 height=600 style="border: 1px solid;">	
 				</canvas>
 			</div>
 
 			<div class="col-md-3">
-				<div>G: <input type="number" data-bind="value: bigG"/></div>
-				<div>dt: <input type="number" data-bind="value: timestep"/></div>
-				<div>steps / draw: <input type="number" data-bind="value: stepsPerDraw"/></div>
-				<div class="btn-group" data-toggle="buttons">
-					<label class="btn btn-primary" data-bind="click: toggleVelocity">
-						<input type="checkbox"> show velocity
-					</label>
-					<label class="btn btn-primary" data-bind="click: toggleAcceleration">
-						<input type="checkbox"> show acceleration
-					</label>
-				</div>
-				<div class="btn-group" data-toggle="buttons">
-					<label class="btn btn-primary" data-bind="click: addPlanet">
-						<input type="checkbox"> add planet
-					</label>
-					<label class="btn btn-primary" data-bind="click: loadPlanets">
-						<input type="checkbox"> start simulation
-					</label>
-				</div>
-				<div>
-					<ul>
-						<li>WASD to pan</li>
-						<li>scroll to zoom</li>
-						<li>~ for full screen</li>
-						<li>R to reset view and start simulation</li>
-					</ul>
-				</div>
+				<ul class="list-group">
+					<li class="list-group-item">
+						<div>
+							G: <input type="number" data-bind="value: bigG"/>
+						</div>
+					</li>
+					<li class="list-group-item">
+						<div>
+							dt: <input type="number" data-bind="value: timestep"/>
+						</div>
+					</li>
+					<li class="list-group-item">
+						<div>
+							Steps: <input type="number" data-bind="value: stepsPerDraw"/>
+						</div>
+					</li>
+					<li class="list-group-item">
+						<div class="btn-group" data-toggle="buttons">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" data-bind="checked: simulateCollisions">
+									Collisions
+								</label>
+							</div>
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" data-bind="checked: showAcceleration">
+									Show Acceleration
+								</label>
+							</div>
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" data-bind="checked: showVelocity">
+									Show Velocity
+								</label>
+							</div>
+						</div>
+					</li>
+					<li class="list-group-item">
+						<div class="btn-group" data-toggle="buttons">
+							<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+								Edit Planets
+							</button>
+						</div>
+					</li>
+					<li class="list-group-item">
+						<div class="btn-group" data-toggle="buttons">
+							<label class="btn btn-primary" data-bind="click: loadPlanets">
+								Start Simulation
+							</label>
+						</div>
+					</li>
+					<li class="list-group-item">WASD to pan</li>
+					<li class="list-group-item">scroll to zoom</li>
+					<li class="list-group-item">~ for full screen</li>
+					<li class="list-group-item">R to reset view and start simulation</li>
+				</ul>
 			</div>
 		</div>
 
-		<div style="overflow-y: scroll; height:300px;">
-			<table>
-				<thead>
-					<tr>
-						<th>x</th>
-						<th>y</th>
-						<th>vx</th>
-						<th>vy</th>
-						<th>r</th>
-						<th>mass</th>
-						<th>color</th>
-					</tr>
-				</thead>
-				<tbody data-bind="foreach: initialConditions">
-					<tr>
-						<td><input type="number" data-bind="value: x"/></td>
-						<td><input type="number" data-bind="value: y"/></td>
-						<td><input type="number" data-bind="value: vx"/></td>
-						<td><input type="number" data-bind="value: vy"/></td>
-						<td><input type="number" data-bind="value: r"/></td>
-						<td><input type="number" data-bind="value: mass"/></td>
-						<td><input type="text" data-bind="value: color"/></td>
-						<td><a href="#" data-bind="click: function() { removePlanet($index); }">Remove</a></td>
-					</tr>
-				</tbody>
-			</table>
-		<div>
+		<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		  <div class="modal-dialog" style="width: 90%; max-width: 1270px;" role="document">
+		    <div class="modal-content">
+		      <div class="modal-header">
+		        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		        <h4 class="modal-title" id="myModalLabel">My Planets</h4>
+		      </div>
+		      <div class="modal-body">
+			<div style="overflow-y: scroll; height:300px;">
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th class="text-center">x</th>
+							<th class="text-center">y</th>
+							<th class="text-center">vx</th>
+							<th class="text-center">vy</th>
+							<th class="text-center">r</th>
+							<th class="text-center">mass</th>
+							<th class="text-center">color</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody data-bind="foreach: initialConditions">
+						<tr>
+							<td><input style="width:150px" type="number" data-bind="value: x"/></td>
+							<td><input style="width:150px" type="number" data-bind="value: y"/></td>
+							<td><input style="width:150px" type="number" data-bind="value: vx"/></td>
+							<td><input style="width:150px" type="number" data-bind="value: vy"/></td>
+							<td><input style="width:150px" type="number" data-bind="value: r"/></td>
+							<td><input style="width:150px" type="number" data-bind="value: mass"/></td>
+							<td><input style="width:150px" type="text" data-bind="value: color"/></td>
+							<td>
+								<button type="button" class="btn btn-default btn-sm" data-bind="click: function() { removePlanet($index); }">
+									<span class="glyphicon glyphicon-trash"></span>
+								</button>
+        					</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		      </div>
+		      <div class="modal-footer">
+				<div class="btn-group" data-toggle="buttons">
+					<label class="btn btn-primary" data-bind="click: addPlanet" data-toggle="toggle">
+						Add Planet
+					</label>
+				</div>
+		      </div>
+		    </div>
+		  </div>
+		</div>
 	</div>
 
 </body>
 </html>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js">
-</script>
-
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-
-<!-- Optional theme -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-
-<!-- Latest compiled and minified JavaScript -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js">
-</script>
 
 <script src="nbody.js">
 </script>

@@ -80,7 +80,8 @@ var loadPlanets = function () {
 			ax: parseFloat(0),
 			ay: parseFloat(0),
 			r: parseFloat(thisPlanet.r),
-			color: thisPlanet.color
+			color: thisPlanet.color,
+			toRemove: false
 		});
 	}
 };
@@ -117,7 +118,8 @@ var viewModel = {
 	bigG: ko.observable(2.5),
 	stepsPerDraw: ko.observable(1000),
 	initialConditions: initialConditions,
-	loadPlanets: loadPlanets
+	loadPlanets: loadPlanets,
+	simulateCollisions: ko.observable(true)
 };
 
 var toggleVelocity = function () { 
@@ -228,13 +230,6 @@ function fastUpdate (stdlib, foreign, heap) {
 					dy        = +f64[(j+8)>>3] - p_y;
 					o_mass_dt = +f64[(j+32)>>3] * dt;
 
-					// sqrt is the bottleneck right now
-					// this approximation seems to perform about 30% faster
-					// than square root (15% total runtime)
-					// ax = (+dx < 0.0) ? -dx : dx;
-					// ay = (+dy < 0.0) ? -dy : dy;
-					// r = ax > ay ? 1.0 / ax : 1.0 / ay;
-					// r = r * (1.29289 - (ax + ay) * r * 0.29289);
 					r = 1.0 / +max(+sqrt(dx * dx + dy * dy), 2.0);
 		
 					a_r_inv = bigG * r * r * r;
@@ -305,6 +300,53 @@ var update = function () {
 		p.vy = new_vy;
 		p.x = speedy[offset];
 		p.y = speedy[offset + 1];
+	}
+
+	if (viewModel.simulateCollisions()) {
+		for (var i = 0; i < num_planets; i++) {
+			var p = planets[i];
+			for (var j = 0; j < i; j++) {
+				var o = planets[j];
+				if (o.toRemove) {
+					continue;
+				}
+
+				var dx = p.x - o.x;
+				var dy = p.y - o.y;
+				var radii = p.r + o.r;
+
+				if (dx * dx + dy * dy > radii * radii) {
+					continue;
+				}
+
+				var big = p;
+				var small = o;
+				if (o.mass > p.mass) {
+					big = o;
+					small = p;
+				}
+
+				var momentumX = o.mass * o.vx + p.mass * p.vx;
+				var momentumY = o.mass * o.vy + p.mass * p.vy;
+
+				big.mass = o.mass + p.mass;
+				big.vx = momentumX / big.mass;
+				big.vy = momentumY / big.mass;
+				big.r = Math.hypot(o.r, p.r);
+
+				small.toRemove = true;
+			}
+		}
+
+		var planets_copy = [];
+		for (var i = 0; i < num_planets; i++) {
+			var p = planets[i];
+			if (!p.toRemove) {
+				planets_copy.push(p);
+			}
+		}
+
+		planets = planets_copy;
 	}
 };
 
