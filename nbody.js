@@ -7,15 +7,15 @@ var vel_debug = 40;
 var acc_debug = 1000; // ZANETODO: log scale these guys :)
 var mouseX = undefined;
 var mouseY = undefined;
-var cameraX = 0;
-var cameraY = 0;
+var canvasWidth = 800;
+var canvasHeight = 600;
+var cameraX = -canvasWidth / 2;
+var cameraY = -canvasHeight / 2;
 var cameraVX = 0;
 var cameraVY = 0;
 var cameraInputWeight = .05;
 var cameraSpeed = 7;
-var canvasWidth = 800;
-var canvasHeight = 600;
-var zoomLevel = 0;
+var zoomLevel = -120;
 var zoomSpeed = 1 / 360;
 var zoomExponent = 2;
 var planets = [];
@@ -33,35 +33,7 @@ var keycode = {
 	ESC: 27
 };
 
-var initialConditions = ko.observableArray([
-	{
-		x: 200,
-		y: 200,
-		vx: 0,
-		vy: 0,
-		r: 20,
-		mass: 500,
-		color: "#992233"
-	},
-	{
-		x: 10,
-		y: 10,
-		vx: 1.4,
-		vy: 0,
-		r: 10,
-		mass: 10,
-		color: "#00AA77"
-	},
-	{
-		x: 300,
-		y: 10,
-		vx: 1,
-		vy: 1,
-		r: 10,
-		mass: 10,
-		color: "#FF0000"
-	}
-]);
+var initialConditions = ko.observableArray([{"x":-53.80699346131542,"y":2.0027641803175427,"vx":-0.06995586511707014,"vy":-4.968757785259645,"mass":0.33,"ax":0.43631747415755767,"ay":-0.026050494430346127,"r":4.88,"color":"#bfb9b7","toRemove":false},{"x":105.08573477432849,"y":31.994782216622003,"vx":-1.0006237951756833,"vy":3.356672390954741,"mass":4.87,"ax":-0.1096800656424497,"ay":-0.03064809176846106,"r":12.1,"color":"#ff9f6b","toRemove":false},{"x":-60.728250000550965,"y":136.5673620590582,"vx":-2.715716363529503,"vy":-1.253829838773624,"mass":5.97,"ax":0.024500647107097873,"ay":-0.054841197701991806,"r":12.7,"color":"#0cba32","toRemove":false},{"x":-78.92388584411192,"y":212.23603799401286,"vx":-2.266557524347107,"vy":-0.8774614001823327,"mass":0.642,"ax":0.009161365908080032,"ay":-0.024473136939809348,"r":6.79,"color":"#c1440e","toRemove":false},{"x":-502.6178365181378,"y":597.2228332554381,"vx":-0.9970547190835919,"vy":-0.8405925315735184,"mass":1898,"ax":0.0014111023628364805,"ay":-0.0016712933181090017,"r":28.6,"color":"#ba7916","toRemove":false},{"x":877.959409240817,"y":1139.7087920566944,"vx":-0.7616023864954384,"vy":0.5962287057358555,"mass":568,"ax":-0.00039446802493281474,"ay":-0.0005115326412714616,"r":14.2,"color":"#b28d55","toRemove":false},{"x":2725.3223891115244,"y":905.0006572943988,"vx":-0.2155411849451579,"vy":0.6452615507596752,"mass":86.8,"ax":-0.00015377347308340172,"ay":-0.00005093349567664163,"r":10.22,"color":"#2dc198","toRemove":false},{"x":4434.634499259775,"y":727.8928861323752,"vx":-0.08912242259780728,"vy":0.5327633132596556,"mass":102,"ax":-0.00006526406503822024,"ay":-0.000010673364731927926,"r":9.9,"color":"#34a7df","toRemove":false},{"x":5871.318161472425,"y":635.1268049221131,"vx":-0.05177100493629744,"vy":0.4672231756595813,"mass":0.0146,"ax":-0.000038094769704906384,"ay":-0.000004099408159707885,"r":0.474,"color":"#a9b3b8","toRemove":false},{"x":1.3915264904305005,"y":1.198413654286134,"vx":0.001194250532934102,"vy":0.00217655535946763,"mass":1989000,"ax":-0.0000011041743213104603,"ay":0.0000019955463058836387,"r":40,"color":"#ffe700","toRemove":false}]);
 
 var loadPlanets = function () {
 	var stringified = JSON.stringify(initialConditions());
@@ -115,11 +87,12 @@ var viewModel = {
 	showVelocity: ko.observable(false),
 	showAcceleration: ko.observable(false),
 	timestep: ko.observable(.001),
-	bigG: ko.observable(2.5),
+	bigG: ko.observable(.00067),
 	stepsPerDraw: ko.observable(1000),
 	initialConditions: initialConditions,
 	loadPlanets: loadPlanets,
-	simulateCollisions: ko.observable(true)
+	simulateCollisions: ko.observable(false),
+	solidFill: ko.observable(true)
 };
 
 var toggleVelocity = function () { 
@@ -175,9 +148,9 @@ var testKey = function (key) {
 
 var reset = function () {
 	loadPlanets();
-	cameraX = 0;
-	cameraY = 0;
-	zoomLevel = 0;
+	cameraX = -canvasWidth / 2;
+	cameraY = -canvasHeight / 2;
+	zoomLevel = -120;
 };
 
 var enterFullScreen = function () {
@@ -350,7 +323,7 @@ var update = function () {
 	}
 };
 
-var drawPlanet = function (planet, cameraScale, showVel, showAcc) {
+var drawPlanet = function (planet, cameraScale, showVel, showAcc, solidFill) {
 	var x = cameraScale * (planet.x - cameraX - canvasWidth / 2) + canvasWidth / 2;
 	var y = cameraScale * (planet.y - cameraY - canvasHeight / 2) + canvasHeight / 2;
 	var vx = planet.vx;
@@ -359,9 +332,15 @@ var drawPlanet = function (planet, cameraScale, showVel, showAcc) {
 	var ay = planet.ay;
 
 	ctx.strokeStyle = planet.color;
+	ctx.fillStyle = planet.color;
 	ctx.beginPath();
 	ctx.arc(x, y, cameraScale * planet.r, 0, TWO_PI);
-	ctx.stroke();
+	if (solidFill) {
+		ctx.fill();
+	}
+	else {
+		ctx.stroke();
+	}
 
 	if (showVel) {
 		var factor = Math.sqrt(cameraScale * vel_debug / Math.hypot(vx, vy));
@@ -414,13 +393,14 @@ var draw = function () {
 	var showVel = viewModel.showVelocity();
 	var showAcc = viewModel.showAcceleration();
 	var cameraScale = Math.pow(zoomExponent, -zoomLevel * zoomSpeed);
+	var solidFill = viewModel.solidFill();
 
 	moveCamera(cameraScale);
 
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	for (var i = 0; i < planets.length; i++) {
 		var thisPlanet = planets[i];
-		drawPlanet(thisPlanet, cameraScale, showVel, showAcc);
+		drawPlanet(thisPlanet, cameraScale, showVel, showAcc, solidFill);
 	}
 };
 
