@@ -19,7 +19,7 @@ var zoomLevel = -120;
 var zoomSpeed = 1 / 360;
 var zoomExponent = 2;
 var planets = [];
-var speedyBuf = new ArrayBuffer(4096); // support for 100 planets
+var speedyBuf = new ArrayBuffer(0x10000); // support for 100 planets
 var speedy = new Float64Array(speedyBuf);
 var isFullScreen = false;
 
@@ -209,11 +209,11 @@ function fastUpdate (stdlib, foreign, heap) {
 					ax = a_r_inv * dx;
 					ay = a_r_inv * dy;
 		
-					p_vx += ax * o_mass_dt;
-					p_vy += ay * o_mass_dt;
+					p_vx = p_vx + ax * o_mass_dt;
+					p_vy = p_vy + ay * o_mass_dt;
 		
-					f64[(j+16)>>3] -= ax * p_mass_dt;
-					f64[(j+24)>>3] -= ay * p_mass_dt;
+					f64[(j+16)>>3] = +f64[(j+16)>>3] - ax * p_mass_dt;
+					f64[(j+24)>>3] = +f64[(j+24)>>3] - ay * p_mass_dt;
 				}
 
 				f64[(i+16)>>3] = p_vx;
@@ -221,8 +221,8 @@ function fastUpdate (stdlib, foreign, heap) {
 			}
 
 			for (i = 0; (i|0) < (heap_size|0); i = (i + 40)|0) {		
-				f64[i>>3] += +f64[(i+16)>>3] * dt;
-				f64[(i+8)>>3] += +f64[(i+24)>>3] * dt;
+				f64[i>>3] = +f64[i>>3] + +f64[(i+16)>>3] * dt;
+				f64[(i+8)>>3] = +f64[(i+8)>>3] + +f64[(i+24)>>3] * dt;
 			}
 		}
 
